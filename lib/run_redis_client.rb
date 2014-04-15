@@ -21,10 +21,12 @@ end
 
 # work through all args
 ARGV.each do |arg|
-  if args[arg.split('=')[0]] == nil
-    raise "Unknown argument <#{arg.split('=')[0]}> script stopped, use '-h' for help"
+  name = arg.split('=')[0]
+  val = arg.split('=')[1]
+  if args.has_key?(name)
+    args[name]= val
   else
-    args[arg.split('=')[0]]= arg.split('=')[1]
+    raise "Unknown argument <#{name}> script stopped, use '-h' for help"
   end
 end
 
@@ -39,7 +41,7 @@ instance = SyncToRedis.new
 conn = Redis.new(:host => redis_host, :port => redis_port, :db => 1)
 conn.ping
 
-### first lets run the bed file through GNU uniq to get the fasta definition_line + frequencies
+## run bed file through GNU uniq to get the fasta definition_line + frequencies
 path_to_uniq_file = instance.convert_to_frequency_files(path_to_file)
 
 File.open(path_to_uniq_file, 'r') do |fIn|
