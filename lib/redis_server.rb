@@ -76,7 +76,7 @@ class RedisServer
         if redis.get(key).to_i == 0
           chrom = key.split("_").first
           pos = key.split("_").last
-          fOut.puts("#{chrom}\t#{pos}")
+          fOut.puts("#{chrom}\t#{pos}\t#{pos.to_i+1}")
           redis.set(key, -1)
         end
       end
