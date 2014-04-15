@@ -29,14 +29,23 @@ class RedisServer
     i = LibrarySplitter.create(:sge_library_splitter)
     files = i.split_data(path_to_windows, :bed)
 
-    ## thread-pool seems to skip loops that only consist of a single element special case
+    ## REMEMBER:
+    ## thread-pool seems to skip loops that only consist of a single element
     thread_pool = Thread.pool(11)
     files.each_with_index do |file, i|
       thread_pool.process {
         puts "Processing file #{i}"
-        ## send each batch to SGE with 'ruby lib/run_redis_client.rb redis_host=localhost redis_port=6379 path_to_file=splitted_file
-        opts = SGECommandOptions.new({:job_name => "RedisFiller", :hostname_filter => "*", :logs_dir => "#{path_output}/logs"})
+
+        ## send each batch to SGE with:
+        ## 'ruby lib/run_redis_client.rb redis_host=localhost redis_port=6379
+        ## path_to_file=splitted_file'
+        opts = SGECommandOptions.new({
+          :job_name => "RedisFiller",
+          :hostname_filter => "*",
+          :logs_dir => "#{path_output}/logs"
+        })
         opts.add_module("ruby/1.9.3")
+
         s = SGECommand.run_with_options("ruby #{File.expand_path(File.dirname(__FILE__))}/run_redis_client.rb redis_host=localhost redis_port=#{redis_port} path_to_file=#{file} mode=write", opts)
       }
       sleep 2
@@ -53,14 +62,22 @@ class RedisServer
     i = LibrarySplitter.create(:sge_library_splitter)
     files = i.split_data(path_to_anchors, :bed)
 
-    ## thread-pool seems to skip loops that only consist of a single element special case
+    ## WARNING:
+    ## thread-pool seems to skip loops that only consist of a single element
     thread_pool = Thread.pool(11)
     files.each_with_index do |file, i|
       thread_pool.process {
         puts "Processing file #{i}"
-        ## send each batch to SGE with 'ruby lib/run_redis_client.rb redis_host=localhost redis_port=6379 path_to_file=splitted_file
-        opts = SGECommandOptions.new({:job_name => "RedisFiller", :hostname_filter => "*", :logs_dir => "#{path_output}/logs"})
+        ## send each batch to SGE with:
+        ## 'ruby lib/run_redis_client.rb redis_host=localhost redis_port=6379
+        ## path_to_file=splitted_file'
+        opts = SGECommandOptions.new({
+          :job_name => "RedisFiller",
+          :hostname_filter => "*",
+          :logs_dir => "#{path_output}/logs"
+        })
         opts.add_module("ruby/1.9.3")
+
         s = SGECommand.run_with_options("ruby #{File.expand_path(File.dirname(__FILE__))}/run_redis_client.rb redis_host=localhost redis_port=#{redis_port} path_to_file=#{file} mode=filter", opts)
       }
       sleep 2
@@ -69,10 +86,13 @@ class RedisServer
     puts "waiting for filter to finish.."
     thread_pool.shutdown
 
-    ## TODO: parse through redis, dump all keys into bed file (chromosome, location)
+    ## parse through redis, dump all keys into bed file (chromosome, location)
     ## once everything is done, shutdown and copy RDB file into another folder
     File.open("results.bed", 'w') do |fOut|
-      redis.scan_each(:count => 5000) do |key|
+      ## FIXME: scan_each on one node is extremely slow, lets check if we can
+      ## just run a pop on multiple nodes at the same time and then concat the
+      ## resulting files together
+      redis.scan_each(:count => 50000) do |key|
         if redis.get(key).to_i == 0
           chrom = key.split("_").first
           pos = key.split("_").last
@@ -85,6 +105,8 @@ class RedisServer
     redis.shutdown
   end
 
+  ## easiest way to find still available port in UNIX
+  ## http://stackoverflow.com/a/201528
   def find_available_port
     server = TCPServer.new("127.0.0.1", 0)
     server.addr[1]
@@ -92,6 +114,9 @@ class RedisServer
     server.close if server
   end
 
+  ## create a new redis-server instance which will get automatically killed
+  ## once our script finishes. Send in a dynamically generated config via an
+  ## input pipe..
   def spin_up_redis(redis_port, dbname)
     @process = ChildProcess.build(File.expand_path("~/bin/redis-server"), "-")
     @process.duplex = true
@@ -101,6 +126,7 @@ class RedisServer
     @process.io.stdin.close
   end
 
+  ## generate redis config dynamically..
   def config(redis_port, dbname)
     <<-CONFIG
     daemonize no
