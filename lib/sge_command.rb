@@ -1,5 +1,5 @@
 require 'yell'
-require 'shell_command'
+require 'command'
 
 class SGEExecuteError < Exception
 end
@@ -206,7 +206,7 @@ class SGECommand
   end
 
   def self.execute(cmdline, command, logger)
-      cmd = ShellCommand.run(cmdline)
+      cmd = Command.run(cmdline)
       return cmd
   end
 end

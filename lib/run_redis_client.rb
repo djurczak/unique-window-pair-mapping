@@ -1,6 +1,6 @@
 require_relative 'sync_to_redis.rb'
 
-require 'shell_command'
+require 'command'
 require 'redis'
 
 args = Hash.new
@@ -9,6 +9,7 @@ args["redis_host"] = "localhost"
 args["redis_port"] = 13337
 args["path_to_file"] = "/path/to/file"
 args["mode"] = "write"
+args["orientation"] = "forward"
 
 # check if the number of args is correct
 if ARGV.size == 1 and ARGV[0] == '-h'
@@ -33,7 +34,9 @@ end
 redis_host = args["redis_host"]
 redis_port = args["redis_port"]
 path_to_file = args["path_to_file"]
-mode = args["mode"]
+
+orientation = args.fetch("orientation", "forward").to_sym
+mode = args["mode"].to_sym
 
 instance = SyncToRedis.new
 
@@ -45,9 +48,13 @@ conn.ping
 path_to_uniq_file = instance.convert_to_frequency_files(path_to_file)
 
 File.open(path_to_uniq_file, 'r') do |fIn|
-  if mode == "write"
-    instance.push_frequencies_to_redis(conn, fIn.lines)
+  if mode == :write
+    instance.push_frequencies_to_redis(
+      conn, fIn.lines, {:orientation => orientation}
+    )
   else
-    instance.remove_frequences_from_redis(conn, fIn.lines)
+    instance.remove_frequences_from_redis(
+      conn, fIn.lines, {:orientation => orientation}
+    )
   end
 end
