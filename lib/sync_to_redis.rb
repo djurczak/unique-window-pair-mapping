@@ -11,7 +11,7 @@ class SyncToRedis
   end
 
   ##      38 chr2l_20747989_20748020
-  def push_frequencies_to_redis(redis_connection, file_input, opts)
+  def push_frequencies_to_redis(redis_connection, file_input, opts = {})
     file_input.each_with_index do |line, i|
       data = line_to_data(line, opts)
 
@@ -19,7 +19,7 @@ class SyncToRedis
     end
   end
 
-  def remove_frequences_from_redis(redis_connection, file_input, opts)
+  def remove_frequences_from_redis(redis_connection, file_input, opts = {})
     file_input.each_with_index do |line, i|
       data = line_to_data(line, opts)
 
