@@ -19,6 +19,7 @@ class SyncToRedis
     end
   end
 
+<<<<<<< HEAD
   def remove_frequences_from_redis(redis_connection, file_input, opts = {})
     file_input.each_with_index do |line, i|
       data = line_to_data(line, opts)
